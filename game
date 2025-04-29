@@ -1,0 +1,179 @@
+// Setting up canvas
+const canvas = document.querySelector('#canvas');
+const context = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+//canvas.style.background = '#ff8';
+canvas.style.background="url('../images/background.png')"
+
+
+let color = ['red', 'green', 'blue'];
+
+let offset=0;
+let slide=0;
+let platforms = [];
+
+// Gravity
+let gravity = 0.5;
+// Making platform
+class Platform {
+    constructor(x, y, width, height,imgSrc) {
+        this.platform = { x: x, y: y, width: width, height: height };
+
+        this.img=new Image();
+        this.img.src=imgSrc;
+
+
+
+
+    }
+
+    draw() {
+        context.fillStyle = 'green';
+        context.drawImage(this.img,this.platform.x, this.platform.y, this.platform.width, this.platform.height);
+    }
+}
+
+// Making player
+class Player {
+    constructor() {
+        this.position = { x: 200, y: 200 };
+        this.velocity = { x: 0, y: 2 };
+        this.onGround = 0; // onGround = 1 player is on the ground, onGround = 0 player is mid-air
+        this.height = 50;
+        this.width = 50;
+        this.frames=1;
+    }
+    
+    draw() {
+       // context.fillStyle = "black";
+        //context.fillRect(this.position.x, this.position.y, this.width, this.height);
+        if(this.velocity.x>0){context.drawImage(playerrunright,340*this.frames,0,340,400,this.position.x,this.position.y,this.height,this.width)}
+        if(this.velocity.x<0){context.drawImage(playerrunleft,341*this.frames,0,345,400,this.position.x,this.position.y,this.height,this.width)    }
+        if(this.velocity.y==0&&this.velocity.x==0){context.drawImage(playerstandright,177*this.frames,0,177,400,this.position.x,this.position.y,this.height,this.width)}
+        if(this.velocity.y==0&&this.velocity.x==0){context.drawImage(playerstandleft,177*this.frames,0,177,400,this.position.x,this.position.y,this.height,this.width)}
+
+    }
+
+    playerMovement() {
+        this.frames++
+        if(this.frames>24)
+        {this.frames=0}
+        if ((this.position.y + this.height) > canvas.height) {
+            this.position.y = canvas.height - this.height;
+            this.velocity.y = 0; // Reset velocity when hitting the ground
+            this.onGround = 1; // Set player as grounded
+        } else {
+            this.velocity.y += gravity; // Gravity continues if not grounded
+            this.onGround = 0; // Player is mid-air
+        }
+
+        for (let i = 0; i < platforms.length; i++) {
+            if (
+                (this.position.x + this.width > platforms[i].platform.x) &&
+                (this.position.x < platforms[i].platform.x + platforms[i].platform.width) &&
+                (this.position.y + this.height <= platforms[i].platform.y) && // Check if player is above the platform
+                (this.position.y + this.height + this.velocity.y >= platforms[i].platform.y) // Check if falling onto the platform
+            ) {
+                this.velocity.y = 0; // Stop vertical movement when landing on the platform
+                this.onGround = 1; // Set player as grounded
+                this.position.y = platforms[i].platform.y - this.height; // Place player on top of the platform
+            }
+
+        // stop player after collision with platform
+        if(this.velocity.x>0 &&
+            (this.position.x+this.width+2>=platforms[i].platform.x)&&
+        (this.position.x +this.width<=platforms[i].platform.x+platforms[i].platform.width)&&
+        (this.position.y+this.height>platforms[i].platform.y)&&
+        (this.position.y<platforms[i].platform.y+platforms[i].platform.height))
+        {this.velocity.x=0
+        }
+         platforms[i].platform.x += offset;
+
+        
+        
+        }
+
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+
+        this.draw();
+    }
+}
+
+// Creating player
+const playerstandleft=new Image();
+playerstandleft.src="../images/standRight.png"
+
+const playerstandright=new Image();
+playerstandright.src="../images/standRight.png"
+
+const playerrunright=new Image();
+playerrunright.src="../images/spriteRunRight.png"
+
+const playerrunleft=new Image();
+playerrunleft.src="../images/spriteRunLeft.png"
+
+let player = new Player();
+const hillsImage=new Image();
+hillsImage.src="../images/hills.png";
+
+
+// Creating platforms
+let platform1 = new Platform(0, canvas.height-100, 300, 100   , '../images/platform.png');
+let platform2 = new Platform(299,canvas.height-100, 300, 100,'../images/platform.png');
+let platform3 = new Platform(710, canvas.height-100, 300, 100,'../images/platform.png');
+platforms.push(platform1, platform2, platform3);
+
+// Event listeners
+addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') {
+        player.velocity.x = 2;
+        offset=-2;
+    }
+    if (e.key === 'ArrowLeft') {
+        player.velocity.x = -2;
+        offset=2;
+
+    }
+    if (e.key === 'ArrowUp'  ) { // Jump only if grounded
+       
+            player.velocity.y = -12; // Smooth jump effect
+            player.onGround = 0; // Temporarily disable jump button
+        
+    }
+
+    if (e.key === ' '  ) { // Jump only if grounded
+        if (player.onGround) {
+            player.velocity.y = -12; // Smooth jump effect
+            player.onGround = 0; // Temporarily disable jump button
+        }
+    }
+});
+
+addEventListener('keyup', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        player.velocity.x = 0; // Stop horizontal movement
+        offset=0;
+
+    }
+});
+
+// Main animation loop
+function playerAnimation() {
+    requestAnimationFrame(playerAnimation);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    slide += offset;
+    context.drawImage(hillsImage,slide,0,5000,canvas.height)  
+    
+
+    for (let i = 0; i < platforms.length; i++) {
+        platforms[i].draw();
+    }
+    player.playerMovement();
+
+}
+
+// Start animation
+playerAnimation();
